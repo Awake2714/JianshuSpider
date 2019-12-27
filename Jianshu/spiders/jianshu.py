@@ -16,17 +16,18 @@ class JianshuSpider(scrapy.Spider):
 
     def parse(self, response):
         title = response.xpath('//h1/text()').extract_first()
-        publish_time = response.xpath('//time[1]/text()').extract_first().replace('.', '/')
-        words = re.search('<span>字数 (\d+?)</span>', response.text).group(1)
-        views = re.search('<span>阅读 (\d+?)</span>', response.text).group(1)
-        like = re.search('aria-label="查看点赞列表">(\d+?)<!-- -->赞</span>', response.text)
+        t = int(re.search(r'"first_shared_at":(\d+?),', response.text).group(1))  #时间戳
+        publish_time = str(datetime.fromtimestamp(t))    #发布时间
+        words = re.search(r'"wordage":(\d+?),"featured_comments_count"', response.text).group(1)    #字数
+        views = re.search(r'"views_count":(\d+?),"notebook_id"', response.text).group(1)    #阅读数
+        like = re.search(r'aria-label="查看点赞列表">(\d+?)<!-- -->赞', response.text)     #点赞数
         if like:
             likes = like.group(1)
         else:
             likes = 0
-        dislikes = re.search('"downvotes_count":(\d+),', response.text).group(1)
-        author = re.search('"nickname":"(.*?)"', response.text, re.S).group(1)
-        url = response.url
+        dislikes = re.search(r'"downvotes_count":(\d+),', response.text).group(1)   #不喜欢数
+        author = re.search('"nickname":"(.*?)"', response.text, re.S).group(1)      #作者
+        url = response.url      #文章链接
         item = JianshuItem(title=title, publish_time=publish_time, words=words, views=views, url=url,
                            likes=likes, dislikes=dislikes, author=author)
         recommends = response.xpath('//ul/li/div/div[1]/a/@href').extract()
